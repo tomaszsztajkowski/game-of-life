@@ -2,6 +2,8 @@ import pygame
 import conway
 from PIL import Image
 import numpy as np
+from os import listdir
+from random import randint
 
 MARINE = (1, 25, 93)
 DARK_MARINE = (1, 20, 88)
@@ -12,6 +14,7 @@ X_QUANTITY = 100
 Y_QUANTITY = 70
 SCREEN_SIZE_X = X_QUANTITY * BOX_SIZE
 SCREEN_SIZE_Y = Y_QUANTITY * BOX_SIZE
+SIDE_PANNEL_WIDTH = 100
 
 def main():
 	def next_frame():
@@ -23,12 +26,17 @@ def main():
 		top_y = max(0, offset_y)
 		bottom_y = min(SCREEN_SIZE_Y // box_offset + offset_y + 1, cells.shape[1])
 
-		g = not generating
-
-		pygame.draw.rect(window, DARK_MARINE, (-offset_x * box_offset, -offset_y * box_offset, cells.shape[1] * box_offset, cells.shape[0] * box_offset))
+		g = int(not generating) - int(box_offset == 1 and not generating)
+		pygame.draw.rect(window, BLACK, (SCREEN_SIZE_X, 0, SIDE_PANNEL_WIDTH + 1, SCREEN_SIZE_Y))
+		for i, p in enumerate(patterns): 
+			window.blit(p, (SCREEN_SIZE_X, i * 30))
+		#pygame.draw.rect(window, DARK_MARINE, (-offset_x * box_offset, -offset_y * box_offset, cells.shape[1] * box_offset, cells.shape[0] * box_offset))
 
 		for cell in conway.currently_alive:
 			x, y = cell
+			if x - offset_x >= (SCREEN_SIZE_X // box_offset) or x - offset_x < 0: continue
+			if y - offset_y >= SCREEN_SIZE_Y // box_offset or y - offset_y < 0: continue
+			
 			display = WHITE #TODO
 			rectangle = ((x - offset_x) * box_offset + g, (y - offset_y) * box_offset + g, box_offset - g, box_offset - g)
 			pygame.draw.rect(window, display, rectangle)
@@ -58,6 +66,18 @@ def main():
 
 		return [p for p in points if p[0] >= 0 and p[1] >= 0]
 
+	def load_image(name):
+		im = Image.open('patterns/{}'.format(name))
+		cells = np.array(im)
+		conway.neighbours = np.zeros(cells.shape)
+		conway.currently_alive = set()
+		for y in range(cells.shape[0]):
+			for x in range(cells.shape[1]):
+				if cells[y][x] == 1: conway.currently_alive.add((x, y))
+		offset_x = -X_QUANTITY // 2 + cells.shape[1] // 2
+		offset_y = -Y_QUANTITY // 2 + cells.shape[0] // 2
+		return cells, offset_x, offset_y
+
 	#pygame.display.set_icon #TODO
 	offset_x = 0
 	offset_y = 0
@@ -66,21 +86,19 @@ def main():
 	prev_coor = coor = (0, 0)
 	generating = False
 	time_point = 0
-	set_speed = 40
+	set_speed = 30
+	cells = np.zeros((Y_QUANTITY, X_QUANTITY))
+	conway.neighbours = np.zeros((Y_QUANTITY, X_QUANTITY))
 
-	im = Image.open('C:/Users/Tomasz/Desktop/python/game-of-life/patterns/gun.bmp')
-	cells = np.array(im)
-	for y in range(cells.shape[0]):
-		for x in range(cells.shape[1]):
-			if cells[y][x] == 1: conway.currently_alive.add((x, y))
+	pygame.font.init()
+	font = pygame.font.SysFont('Arial', 30)
+	bitmap_names = listdir('patterns')
+	patterns = [font.render(p[:-4].upper(), True, WHITE) for p in bitmap_names]
 
-	for i in cells: print(i)
-
-	#cells = np.zeros((Y_QUANTITY, X_QUANTITY))
 
 	clock = pygame.time.Clock()
 
-	window = pygame.display.set_mode((SCREEN_SIZE_X, SCREEN_SIZE_Y))
+	window = pygame.display.set_mode((SCREEN_SIZE_X + SIDE_PANNEL_WIDTH, SCREEN_SIZE_Y))
 
 	active = True
 	while active:
@@ -97,6 +115,7 @@ def main():
 			elif event.type == pygame.MOUSEMOTION:
 				mouse_position = pygame.mouse.get_pos()
 				coor = (mouse_position[1] // box_offset, mouse_position[0] // box_offset)
+				
 
 			elif event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_SPACE:
@@ -113,24 +132,54 @@ def main():
 					generating = False
 					conway.currently_alive = set()
 					time_point = 0
+					set_speed = 30
+					bitmap_names = listdir('patterns')
+					patterns = [font.render(p[:-4].upper(), True, WHITE) for p in bitmap_names]
+
+				elif event.key == pygame.K_MINUS:
+					set_speed += 30
+					time_point = min(time_point, set_speed)
+				elif event.key == pygame.K_EQUALS:
+					set_speed = max(0, set_speed - 30)
+					time_point -= 30
 
 			elif event.type == pygame.MOUSEBUTTONDOWN:
-				if event.button == 4: box_offset += 1
-				elif event.button == 5: box_offset -= 1
-				box_offset = max(box_offset, 2)
+				if event.button == 1 and mouse_position[0] > SCREEN_SIZE_X:
+					try:
+						cells, offset_x, offset_y = load_image(bitmap_names[mouse_position[1] // 30])
+						generating = False
+						time_point = 0
+					except Exception as e: print(e)
+
+				a = 0
+				#print((SCREEN_SIZE_X // box_offset) / offset_x)
+				if event.button == 4:
+					box_offset += 1
+					# offset_x = (SCREEN_SIZE_X / box_offset) * offset_x // (SCREEN_SIZE_X // (box_offset - 1))
+					# offset_y = (SCREEN_SIZE_Y / box_offset) * offset_y // (SCREEN_SIZE_Y // (box_offset - 1))
+				elif event.button == 5:
+					box_offset -= 1
+					# offset_x = (SCREEN_SIZE_X // box_offset) * offset_x // (SCREEN_SIZE_X // (box_offset + 1))
+					# offset_y = (SCREEN_SIZE_Y // box_offset) * offset_y // (SCREEN_SIZE_Y // (box_offset + 1))
+				box_offset = max(box_offset, 1)
+				#print((SCREEN_SIZE_X // box_offset) / offset_x)
 
 
 		if pygame.mouse.get_pressed()[0] :
+			if mouse_position[0] > SCREEN_SIZE_X:
+				continue
+
 			if coor[1] >= cells.shape[1] - offset_x - 1:
 				cells = np.concatenate((cells, np.zeros((cells.shape[0], coor[1] - cells.shape[1] + offset_x + 1 + 1))), axis=1)
-			if coor[1] < -offset_x + 1:
+				conway.neighbours = np.concatenate((conway.neighbours, np.zeros((conway.neighbours.shape[0], coor[1] - conway.neighbours.shape[1] + offset_x + 1 + 1))), axis=1)
+			elif coor[1] < -offset_x + 1:
 				dist = -(coor[1] + offset_x) + 1
 				cells = np.concatenate((np.zeros((cells.shape[0], dist)), cells), axis=1)
 				conway.currently_alive = {(cell[0] + dist, cell[1]) for cell in conway.currently_alive}
 				offset_x += dist
 			if coor[0] >= cells.shape[0] - offset_y - 1:
 				cells = np.concatenate((cells, np.zeros((coor[0] - cells.shape[0] + offset_y + 1 + 1, cells.shape[1])) ))
-			if coor[0] < -offset_y + 1:
+			elif coor[0] < -offset_y + 1:
 				dist = -(coor[0] + offset_y) + 1
 				cells = np.concatenate((np.zeros((dist, cells.shape[1])), cells))
 				conway.currently_alive = {(cell[0], cell[1] + dist) for cell in conway.currently_alive}
