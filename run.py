@@ -1,5 +1,6 @@
 import pygame
 import conway
+from PIL import Image
 import numpy as np
 
 MARINE = (1, 25, 93)
@@ -58,7 +59,6 @@ def main():
 		return [p for p in points if p[0] >= 0 and p[1] >= 0]
 
 	#pygame.display.set_icon #TODO
-	cells = np.zeros((Y_QUANTITY, X_QUANTITY))
 	offset_x = 0
 	offset_y = 0
 	box_offset = BOX_SIZE
@@ -68,7 +68,15 @@ def main():
 	time_point = 0
 	set_speed = 40
 
-	conway.get_generation(np.array([]))
+	im = Image.open('C:/Users/Tomasz/Desktop/python/game-of-life/patterns/gun.bmp')
+	cells = np.array(im)
+	for y in range(cells.shape[0]):
+		for x in range(cells.shape[1]):
+			if cells[y][x] == 1: conway.currently_alive.add((x, y))
+
+	for i in cells: print(i)
+
+	#cells = np.zeros((Y_QUANTITY, X_QUANTITY))
 
 	clock = pygame.time.Clock()
 
@@ -79,6 +87,7 @@ def main():
 		if generating: time_point += clock.tick(120)
 		else: clock.tick(120)
 
+		pygame.event.pump()
 		for event in pygame.event.get():
 
 			# quit

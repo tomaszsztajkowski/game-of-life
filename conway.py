@@ -1,5 +1,6 @@
 import numpy as np
 
+
 currently_alive = set()
 
 def get_generation(cells):
@@ -7,10 +8,8 @@ def get_generation(cells):
 		x, y = cell
 		for i in [-1, 0, 1]:
 			for j in [-1, 0, 1]:
-				try:
-					how_many_neighbours[y + i][x + j] += 1 * (not (i == 0 and j == 0))
-					potentially_alive.add((x + i, y + j))
-				except: print('dupa')
+				how_many_neighbours[y + i][x + j] += 1 * (not (i == 0 and j == 0))
+				potentially_alive.add((x + i, y + j))
 
 	
 	global currently_alive
@@ -26,16 +25,19 @@ def get_generation(cells):
 	for cell in potentially_alive:
 		x, y = cell
 		if how_many_neighbours[y][x] == 3:
+			print(x, y)
 			top += y == 0
-			bottom += y == cells.shape[0] - 1
+			bottom += y == (cells.shape[0] - 1)
 			left += x == 0
-			right += x == cells.shape[1] - 1
+			right += x == (cells.shape[1] - 1)
 			currently_alive.add((x, y))
 			cells[y][x] = 1
 		elif how_many_neighbours[y][x] == 2:
 			if cells[y][x] == 1: currently_alive.add((x, y))
 		else:
 			cells[y][x] = 0
+
+	print(top, bottom, left, right)
 
 	if left:
 		cells = np.concatenate((np.zeros((cells.shape[0], 1)), cells), axis=1)
