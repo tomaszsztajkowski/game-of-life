@@ -16,25 +16,25 @@ SCREEN_SIZE_X = X_QUANTITY * BOX_SIZE
 SCREEN_SIZE_Y = Y_QUANTITY * BOX_SIZE
 SIDE_PANNEL_WIDTH = 100
 FONT_SIZE = 25
+FRAMERATE_LIMIT = 500
 
 def main():
 	def next_frame():
 		window.fill(MARINE)
 		color = (BLACK, WHITE)
 		
-
-		g = int(not generating) - int(box_offset == 1 and not generating)
-		pygame.draw.rect(window, BLACK, (SCREEN_SIZE_X, 0, SIDE_PANNEL_WIDTH + 1, SCREEN_SIZE_Y))
-		for i, p in enumerate(patterns): 
-			window.blit(p, (SCREEN_SIZE_X, i * FONT_SIZE))
-
+		g = int(not generating) - int(box_offset <= 2 and not generating)
 		for cell in conway.currently_alive:
 			x, y = cell
-			if x - offset_x >= (SCREEN_SIZE_X // box_offset) or x - offset_x < 0: continue
-			if y - offset_y >= SCREEN_SIZE_Y // box_offset or y - offset_y < 0: continue
+			if x - offset_x > SCREEN_SIZE_X // box_offset + 1 or x - offset_x < -1: continue
+			if y - offset_y > SCREEN_SIZE_Y // box_offset + 1 or y - offset_y < -1: continue
 			
 			rectangle = ((x - offset_x) * box_offset + g, (y - offset_y) * box_offset + g, box_offset - g, box_offset - g)
 			pygame.draw.rect(window, WHITE, rectangle)
+
+		pygame.draw.rect(window, BLACK, (SCREEN_SIZE_X, 0, SIDE_PANNEL_WIDTH + 1, SCREEN_SIZE_Y))
+		for i, p in enumerate(patterns): 
+			window.blit(p, (SCREEN_SIZE_X, i * FONT_SIZE))
 
 		pygame.display.update()
 
@@ -98,8 +98,8 @@ def main():
 
 	active = True
 	while True:
-		#if generating: time_point += clock.tick(120)
-		#else: clock.tick(120)
+		if generating: time_point += clock.tick(FRAMERATE_LIMIT)
+		else: pass
 
 		pygame.event.pump()
 		for event in pygame.event.get():
@@ -116,6 +116,8 @@ def main():
 			elif event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_SPACE:
 					generating = not generating
+					clock.tick(FRAMERATE_LIMIT)
+					time_point = 0
 
 				elif event.key == pygame.K_RIGHT:
 					conway.get_generation()
@@ -130,11 +132,11 @@ def main():
 					patterns = [font.render(' ' + p[:-4].upper(), True, WHITE) for p in bitmap_names]
 
 				elif event.key == pygame.K_MINUS:
-					set_speed += 30
+					set_speed *= 2
 					time_point = min(time_point, set_speed)
 				elif event.key == pygame.K_EQUALS:
-					set_speed = max(0, set_speed - 30)
-					time_point -= 30
+					set_speed = max(1, set_speed / 2)
+					time_point -= set_speed
 
 			elif event.type == pygame.MOUSEBUTTONDOWN:
 				if event.button == 1 and mouse_position[0] > SCREEN_SIZE_X:
@@ -142,17 +144,15 @@ def main():
 						offset_x, offset_y = load_image(bitmap_names[mouse_position[1] // FONT_SIZE])
 						generating = False
 						time_point = 0
+						box_offset = BOX_SIZE
 					except Exception as e: print(e)
 
-				a = 0
-				if event.button == 4:
-					box_offset += 1
-					#offset_x = (SCREEN_SIZE_X / box_offset) * offset_x // (SCREEN_SIZE_X // (box_offset - 1))
-					#offset_y = (SCREEN_SIZE_Y / box_offset) * offset_y // (SCREEN_SIZE_Y // (box_offset - 1))
-				elif event.button == 5:
-					box_offset = max(box_offset - 1, 1)
-					#offset_x = (SCREEN_SIZE_X // box_offset) * offset_x // (SCREEN_SIZE_X // (box_offset + 1))
-					#offset_y = (SCREEN_SIZE_Y // box_offset) * offset_y // (SCREEN_SIZE_Y // (box_offset + 1))
+				else:
+					x, y = pygame.mouse.get_pos()[0] / box_offset, pygame.mouse.get_pos()[1] / box_offset
+					if event.button == 4: box_offset += 1
+					elif event.button == 5: box_offset = max(box_offset - 1, 1)
+					offset_x = round(offset_x + x - pygame.mouse.get_pos()[0] / box_offset)
+					offset_y = round(offset_y + y - pygame.mouse.get_pos()[1] / box_offset)
 				
 
 
@@ -212,8 +212,8 @@ def main():
 
 
 		next_frame()
-		if generating:# and time_point > set_speed:
-			#time_point -= set_speed
+		if generating and time_point > set_speed:
+			time_point -= set_speed
 			conway.get_generation()
 
 			
