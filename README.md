@@ -36,4 +36,3 @@ python3 run.py
 
 ###### sidenote: you can add your own bitmaps for repeated use to the 'patterns' folder
 #
-<a href="https://imgur.com/5IFHui4"><img src="https://i.imgur.com/5IFHui4.png" title="source: imgur.com" /></a>
