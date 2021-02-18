@@ -32,7 +32,7 @@ python3 run.py
 - '-'/'+' - slower/faster animation
 - space - start/stop simulation
 - right arrow button - advance the simulation by one step
-- escape - clear the simulation
+- escape - clear the map
 
 ###### sidenote: you can add your own bitmaps for repeated use to the 'patterns' folder
 #
